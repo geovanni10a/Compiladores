@@ -188,15 +188,6 @@ header = f'''
 declara&ccedil;&otilde;es MicroJava abaixo, de acordo com a gram&aacute;tica formal da linguagem
 (MicroJava Quick Reference).</i></p>
 <p class="codigo">{decl_lines}</p>
-<p class="texto">As &aacute;rvores de deriva&ccedil;&atilde;o a seguir foram constru&iacute;das a partir da gram&aacute;tica EBNF
-do <i>MicroJava Quick Reference</i>. Em cada &aacute;rvore, os s&iacute;mbolos <b>n&atilde;o-terminais</b> aparecem dentro de
-caixas arredondadas; os <b>terminais literais</b> (palavras reservadas, operadores e pontua&ccedil;&atilde;o) aparecem em
-negrito; e as <b>classes terminais l&eacute;xicas</b> (<span class="mono">ident</span>, <span class="mono">number</span>,
-<span class="mono">charConst</span>) aparecem sublinhadas, com o lexema correspondente indicado logo abaixo, entre
-par&ecirc;nteses. Antes de cada &aacute;rvore &eacute; apresentada tamb&eacute;m a <b>deriva&ccedil;&atilde;o mais &agrave;
-esquerda</b> completa, passo a passo, at&eacute; a forma sentencial composta apenas por s&iacute;mbolos terminais.
-Vale notar que, em MicroJava, <span class="mono">int</span> &eacute; um nome de tipo pr&eacute;-declarado, reconhecido
-pelo analisador l&eacute;xico como <span class="mono">ident</span>.</p>
 <p class="texto"><b>Gram&aacute;tica de refer&ecirc;ncia (produ&ccedil;&otilde;es utilizadas):</b></p>
 <pre class="gram">Statement  = Designator ("=" Expr | ActPars) ";"
            | "if" "(" Condition ")" Statement ["else" Statement]
