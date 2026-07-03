@@ -188,7 +188,6 @@ header = f'''
 declara&ccedil;&otilde;es MicroJava abaixo, de acordo com a gram&aacute;tica formal da linguagem
 (MicroJava Quick Reference).</i></p>
 <p class="codigo">{decl_lines}</p>
-<p class="resposta">Resposta:</p>
 <p class="texto">As &aacute;rvores de deriva&ccedil;&atilde;o a seguir foram constru&iacute;das a partir da gram&aacute;tica EBNF
 do <i>MicroJava Quick Reference</i>. Em cada &aacute;rvore, os s&iacute;mbolos <b>n&atilde;o-terminais</b> aparecem dentro de
 caixas arredondadas; os <b>terminais literais</b> (palavras reservadas, operadores e pontua&ccedil;&atilde;o) aparecem em
