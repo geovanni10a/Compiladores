@@ -287,11 +287,6 @@ Factor     = Designator [ActPars] | number | charConst
            | "new" ident ["[" Expr "]"] | "(" Expr ")".
 Designator = ident {"." ident | "[" Expr "]"}.
 Addop      = "+" | "-".      Mulop = "*" | "/" | "%".</pre>
-  <p class="note"><b>Observa&ccedil;&atilde;o:</b> em MicroJava, <span class="mono">int</span> e <span class="mono">char</span>
-  s&atilde;o nomes de tipos pr&eacute;-declarados e s&atilde;o reconhecidos pelo analisador l&eacute;xico como
-  <i>ident</i> (n&atilde;o constam na lista de palavras reservadas do guia de refer&ecirc;ncia). As partes
-  opcionais [&nbsp;] e repetitivas {&nbsp;} da EBNF aparecem nas &aacute;rvores apenas quando efetivamente
-  utilizadas na deriva&ccedil;&atilde;o.</p>
 </section>'''
 
 WIDE = {7}  # declaracoes cuja arvore e larga demais para retrato -> pagina paisagem
