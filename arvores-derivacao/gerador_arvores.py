@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gera arvores de derivacao MicroJava como SVG embutido em HTML (para PDF)."""
+"""Gera as arvores de derivacao MicroJava em HTML no modelo academico UNIFAP (para PDF A4 retrato)."""
 import html as H
 
 # ---------- modelo de no ----------
@@ -9,16 +9,15 @@ class Node:
         self.kind = kind  # 'nt' = nao-terminal, 't' = terminal literal, 'tc' = classe terminal, 'lex' = lexema
         self.children = children or []
 
-def N(label, *children):  # nao-terminal
+def N(label, *children):
     return Node(label, 'nt', list(children))
 
-def T(label):             # terminal literal (palavra reservada / operador / pontuacao)
+def T(label):
     return Node(label, 't')
 
-def TC(cls, lexeme):      # classe terminal (ident, number, charConst) com lexema abaixo
+def TC(cls, lexeme):
     return Node(cls, 'tc', [Node(lexeme, 'lex')])
 
-# atalhos frequentes
 def ident(name): return TC('ident', name)
 def number(v):   return TC('number', v)
 def charconst(v):return TC('charConst', v)
@@ -26,21 +25,18 @@ def charconst(v):return TC('charConst', v)
 def desig(name): return N('Designator', ident(name))
 
 def expr_simple(leaf):
-    """Expr -> Term -> Factor -> (leaf)"""
     return N('Expr', N('Term', N('Factor', leaf)))
 
 def expr_var(name):
     return N('Expr', N('Term', N('Factor', desig(name))))
 
 def desig_index(name, index_expr):
-    """Designator -> ident [ Expr ]"""
     return N('Designator', ident(name), T('['), index_expr, T(']'))
 
 def assign_stmt(lhs, expr):
     return N('Statement', desig(lhs), T('='), expr, T(';'))
 
 def expr_binop(t1, op, t2):
-    """Expr -> Term Addop Term"""
     return N('Expr', t1, N('Addop', T(op)), t2)
 
 def term_of(leaf):
@@ -49,7 +45,6 @@ def term_of(leaf):
 # ---------- as 8 arvores ----------
 trees = []
 
-# 1) sum = a + max;
 trees.append((
     "sum = a + max;",
     "Statement = Designator “=” Expr “;”",
@@ -63,7 +58,6 @@ trees.append((
         expr_binop(term_of(desig('a')), '+', term_of(desig('max'))))
 ))
 
-# 2) total = arr[0] + arr[1];
 trees.append((
     "total = arr[0] + arr[1];",
     "Statement = Designator “=” Expr “;”",
@@ -80,7 +74,6 @@ trees.append((
             term_of(desig_index('arr', expr_simple(number('1'))))))
 ))
 
-# 3) values = new int[size];
 trees.append((
     "values = new int[size];",
     "Statement = Designator “=” Expr “;”",
@@ -94,7 +87,6 @@ trees.append((
             T('new'), ident('int'), T('['), expr_var('size'), T(']')))))
 ))
 
-# 4) arr = new int[10];
 trees.append((
     "arr = new int[10];",
     "Statement = Designator “=” Expr “;”",
@@ -108,7 +100,6 @@ trees.append((
             T('new'), ident('int'), T('['), expr_simple(number('10')), T(']')))))
 ))
 
-# 5) letter = 'A';
 trees.append((
     "letter = 'A';",
     "Statement = Designator “=” Expr “;”",
@@ -120,7 +111,6 @@ trees.append((
     assign_stmt('letter', expr_simple(charconst("'A'")))
 ))
 
-# 6) class Node { int data; int[] next; }
 trees.append((
     "class Node { int data; int[] next; }",
     "ClassDecl = “class” ident “{” {VarDecl} “}”",
@@ -134,7 +124,6 @@ trees.append((
         T('}'))
 ))
 
-# 7) if (x > 0) x = x - 1; else x = x + 1;
 trees.append((
     "if (x > 0) x = x - 1; else x = x + 1;",
     "Statement = “if” “(” Condition “)” Statement [“else” Statement]",
@@ -155,7 +144,6 @@ trees.append((
         assign_stmt('x', expr_binop(term_of(desig('x')), '+', term_of(number('1')))))
 ))
 
-# 8) while (i < size) i = i + 1;
 trees.append((
     "while (i < size) i = i + 1;",
     "Statement = “while” “(” Condition “)” Statement",
@@ -175,17 +163,16 @@ trees.append((
 ))
 
 # ---------- layout ----------
-FONT = 15          # px
+FONT = 15
 CHAR_W = 0.62 * FONT
-PAD_X = 14         # espaco horizontal entre subarvores irmas
+PAD_X = 9          # mais compacto para pagina retrato
 NODE_H = 22
-LEVEL_H = 58       # distancia vertical entre niveis
+LEVEL_H = 56
 
 def text_w(label):
-    return max(len(label) * CHAR_W + 10, 26)
+    return max(len(label) * CHAR_W + 8, 24)
 
 def measure(node):
-    """largura da subarvore"""
     w_self = text_w(node.label)
     if not node.children:
         node.subw = w_self
@@ -195,7 +182,6 @@ def measure(node):
     return node.subw
 
 def place(node, x0, depth):
-    """define node.x (centro) e node.y"""
     node.y = depth * LEVEL_H + NODE_H
     if not node.children:
         node.x = x0 + node.subw / 2
@@ -223,7 +209,7 @@ def render_node(node, parts):
     color, fstyle, fweight, ffam = STYLE[node.kind]
     label = H.escape(node.label)
     if node.kind == 't':
-        label = '&#8220;' + label + '&#8221;'  # aspas tipograficas em terminais literais
+        label = '&#8220;' + label + '&#8221;'
     for c in node.children:
         dash = ' stroke-dasharray="4,3"' if c.kind == 'lex' else ''
         parts.append(
@@ -235,43 +221,54 @@ def render_node(node, parts):
         f'font-family="{ffam}" font-size="{FONT}" fill="{color}" '
         f'font-style="{fstyle}" font-weight="{fweight}">{label}</text>')
 
-def tree_svg(root):
+def tree_svg(root, max_h_mm=170):
     measure(root)
     place(root, 10, 0)
     d = depth_of(root)
     w = root.subw + 20
     h = d * LEVEL_H + 20
     parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w:.0f} {h:.0f}" '
-             f'style="max-width:100%;max-height:168mm;display:block;margin:0 auto;">']
+             f'style="max-width:100%;max-height:{max_h_mm}mm;display:block;margin:0 auto;">']
     render_node(root, parts)
     parts.append('</svg>')
     return ''.join(parts)
 
 # ---------- documento HTML ----------
-pages = []
-for i, (code, start_rule, rules, root) in enumerate(trees, 1):
-    rules_html = ''.join(f'<li><code>{H.escape(r)}</code></li>' for r in rules)
-    pages.append(f'''
-<section class="page">
-  <div class="head">
-    <span class="num">Declara&ccedil;&atilde;o {i}</span>
-    <code class="code">{H.escape(code)}</code>
-  </div>
-  <p class="start">Produ&ccedil;&atilde;o inicial: <code>{H.escape(start_rule)}</code></p>
-  <div class="treebox">{tree_svg(root)}</div>
-  <div class="rules"><b>Produ&ccedil;&otilde;es da gram&aacute;tica utilizadas:</b><ul>{rules_html}</ul></div>
-</section>''')
+with open('/tmp/claude-0/-home-user-Compiladores/aacc7efb-1e14-5b4f-9a39-f086a7696ac9/scratchpad/logo_b64.txt') as f:
+    LOGO = f.read().strip()
 
-legend = '''
+decl_lines = '<br>'.join(H.escape(code) for code, _, _, _ in trees)
+
+# --- pagina 1: capa no modelo UNIFAP ---
+page1 = f'''
 <section class="page cover">
-  <h1>&Aacute;rvores de Deriva&ccedil;&atilde;o &mdash; Linguagem MicroJava</h1>
-  <p class="sub">Constru&iacute;das de acordo com a gram&aacute;tica formal do <i>MicroJava Quick Reference</i> (H.&nbsp;M&ouml;ssenb&ouml;ck).</p>
-  <h2>Conven&ccedil;&otilde;es utilizadas nas &aacute;rvores</h2>
+  <div class="covertop">
+    <img class="logo" src="data:image/png;base64,{LOGO}" alt="UNIFAP">
+    <p class="inst">UNIVERSIDADE FEDERAL DO AMAP&Aacute;<br>
+    DEPARTAMENTO DE CI&Ecirc;NCIAS EXATAS E TECNOL&Oacute;GICAS<br>
+    CURSO DE CI&Ecirc;NCIA DA COMPUTA&Ccedil;&Atilde;O</p>
+    <p class="autor">GEOVANNI RODRIGUES DA SILVA</p>
+    <p class="titulo">Atividade de Compiladores</p>
+  </div>
+  <div class="tarefa">
+    <p class="enun"><b>Tarefa: Construa a &aacute;rvore de deriva&ccedil;&atilde;o completa para cada uma das
+    declara&ccedil;&otilde;es MicroJava abaixo, de acordo com a gram&aacute;tica formal da linguagem
+    (<i>MicroJava Quick Reference</i>).</b></p>
+    <p class="codigo">{decl_lines}</p>
+  </div>
+  <p class="cidade">Macap&aacute;, 2026</p>
+</section>'''
+
+# --- pagina 2: convencoes e gramatica ---
+page2 = '''
+<section class="page">
+  <h2>Conven&ccedil;&otilde;es utilizadas nas &aacute;rvores de deriva&ccedil;&atilde;o</h2>
   <table class="leg">
+    <tr><th>Nota&ccedil;&atilde;o</th><th>Significado</th></tr>
     <tr><td class="nt">S&iacute;mbolo em azul (it&aacute;lico)</td><td>N&atilde;o-terminal da gram&aacute;tica (ex.: <span class="nt">Statement</span>, <span class="nt">Expr</span>, <span class="nt">Term</span>)</td></tr>
     <tr><td class="t">&#8220;s&iacute;mbolo&#8221; em preto (negrito)</td><td>Terminal literal: palavra reservada, operador ou pontua&ccedil;&atilde;o (ex.: <span class="t">&#8220;=&#8221;</span>, <span class="t">&#8220;while&#8221;</span>, <span class="t">&#8220;;&#8221;</span>)</td></tr>
     <tr><td class="tc">s&iacute;mbolo em verde</td><td>Classe terminal l&eacute;xica: <span class="tc">ident</span>, <span class="tc">number</span>, <span class="tc">charConst</span></td></tr>
-    <tr><td class="lex">texto em laranja (tracejado)</td><td>Lexema concreto reconhecido pelo analisador l&eacute;xico (ex.: <span class="lex">sum</span>, <span class="lex">10</span>, <span class="lex">'A'</span>)</td></tr>
+    <tr><td class="lex">texto em laranja (liga&ccedil;&atilde;o tracejada)</td><td>Lexema concreto reconhecido pelo analisador l&eacute;xico (ex.: <span class="lex">sum</span>, <span class="lex">10</span>, <span class="lex">'A'</span>)</td></tr>
   </table>
   <h2>Gram&aacute;tica de refer&ecirc;ncia (trecho relevante)</h2>
   <pre class="gram">Statement  = Designator ("=" Expr | ActPars) ";"
@@ -290,43 +287,80 @@ Factor     = Designator [ActPars] | number | charConst
            | "new" ident ["[" Expr "]"] | "(" Expr ")".
 Designator = ident {"." ident | "[" Expr "]"}.
 Addop      = "+" | "-".      Mulop = "*" | "/" | "%".</pre>
-  <p class="note">Observa&ccedil;&otilde;es: (1) em MicroJava, <code>int</code> e <code>char</code> s&atilde;o nomes de tipos pr&eacute;-declarados e s&atilde;o reconhecidos pelo analisador l&eacute;xico como <i>ident</i> (n&atilde;o constam na lista de palavras reservadas do guia de refer&ecirc;ncia); (2) as partes opcionais <code>[&nbsp;]</code> e repetitivas <code>{&nbsp;}</code> da EBNF aparecem nas &aacute;rvores apenas quando efetivamente utilizadas na deriva&ccedil;&atilde;o.</p>
+  <p class="note"><b>Observa&ccedil;&atilde;o:</b> em MicroJava, <span class="mono">int</span> e <span class="mono">char</span>
+  s&atilde;o nomes de tipos pr&eacute;-declarados e s&atilde;o reconhecidos pelo analisador l&eacute;xico como
+  <i>ident</i> (n&atilde;o constam na lista de palavras reservadas do guia de refer&ecirc;ncia). As partes
+  opcionais [&nbsp;] e repetitivas {&nbsp;} da EBNF aparecem nas &aacute;rvores apenas quando efetivamente
+  utilizadas na deriva&ccedil;&atilde;o.</p>
 </section>'''
+
+WIDE = {7}  # declaracoes cuja arvore e larga demais para retrato -> pagina paisagem
+
+pages = []
+for i, (code, start_rule, rules, root) in enumerate(trees, 1):
+    rules_html = ''.join(f'<li><span class="mono">{H.escape(r)}</span></li>' for r in rules)
+    cls = ' wide' if i in WIDE else ''
+    pages.append(f'''
+<section class="page{cls}">
+  <p class="declhead"><b>Declara&ccedil;&atilde;o {i}:</b> <span class="codigo2">{H.escape(code)}</span></p>
+  <p class="start">Produ&ccedil;&atilde;o inicial: <span class="mono">{H.escape(start_rule)}</span></p>
+  <div class="treebox">{tree_svg(root)}</div>
+  <div class="rules"><b>Produ&ccedil;&otilde;es da gram&aacute;tica utilizadas:</b><ul>{rules_html}</ul></div>
+</section>''')
 
 doc = f'''<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <style>
+  @page {{ size: A4 portrait; margin: 0; }}
+  @page land {{ size: A4 landscape; margin: 0; }}
+  .page.wide {{ page: land; width: 297mm; height: 209mm; }}
   * {{ margin:0; padding:0; box-sizing:border-box; }}
-  body {{ font-family: Georgia, 'Times New Roman', serif; color:#222; }}
-  .page {{ page-break-after: always; padding: 10mm 8mm; }}
+  body {{ font-family: 'Times New Roman', Times, serif; color:#000; font-size: 12pt; }}
+  .page {{ width: 210mm; height: 296mm; padding: 20mm 20mm 16mm; page-break-after: always;
+           display: flex; flex-direction: column; overflow: hidden; }}
   .page:last-child {{ page-break-after: auto; }}
-  .cover h1 {{ font-size: 24pt; margin-bottom: 4mm; color:#1a3f7a; }}
-  .cover .sub {{ font-size: 12pt; margin-bottom: 8mm; }}
-  .cover h2 {{ font-size: 13pt; margin: 6mm 0 3mm; }}
-  .leg {{ border-collapse: collapse; font-size: 10.5pt; }}
-  .leg td {{ border: 1px solid #bbb; padding: 2mm 3mm; }}
+  .cover {{ text-align: left; }}
+  .covertop {{ text-align: center; padding-top: 8mm; }}
+  .logo {{ width: 24mm; height: auto; }}
+  .inst {{ margin-top: 4mm; font-size: 12pt; line-height: 1.5; }}
+  .autor {{ margin-top: 10mm; font-size: 12pt; }}
+  .titulo {{ margin-top: 10mm; font-weight: bold; font-size: 12.5pt; }}
+  .tarefa {{ margin-top: 12mm; }}
+  .enun {{ text-align: justify; margin-bottom: 6mm; }}
+  .codigo {{ font-family: Consolas, 'Courier New', monospace; font-style: italic;
+             font-size: 11pt; line-height: 1.7; margin-left: 8mm; }}
+  .codigo2 {{ font-family: Consolas, 'Courier New', monospace; font-weight: bold; font-size: 12.5pt; }}
+  .cidade {{ margin-top: auto; text-align: center; font-size: 12pt; }}
+  h2 {{ font-size: 12.5pt; margin: 0 0 4mm; }}
+  h2 + .leg, .gram {{ margin-bottom: 8mm; }}
+  .leg {{ border-collapse: collapse; font-size: 11pt; width: 100%; }}
+  .leg th {{ background: #dce6f1; }}
+  .leg th, .leg td {{ border: 1px solid #000; padding: 2mm 3mm; text-align: left; }}
   .nt {{ color:#1a3f7a; font-style: italic; }}
   .t  {{ color:#111; font-weight: bold; font-family: Consolas, monospace; }}
   .tc {{ color:#0a6b3d; font-family: Consolas, monospace; }}
   .lex {{ color:#8a5a00; font-style: italic; font-family: Consolas, monospace; }}
-  .gram {{ font-family: Consolas, Menlo, monospace; font-size: 9.5pt; background:#f5f5f0;
-          border:1px solid #ddd; padding: 3mm; line-height: 1.45; }}
-  .note {{ font-size: 10pt; margin-top: 5mm; color:#444; }}
-  .head {{ border-bottom: 2px solid #1a3f7a; padding-bottom: 2mm; margin-bottom: 3mm; }}
-  .head .num {{ font-size: 11pt; color:#1a3f7a; font-weight: bold; margin-right: 6mm; }}
-  .head .code {{ font-family: Consolas, Menlo, monospace; font-size: 14pt; font-weight: bold; }}
-  .start {{ font-size: 10.5pt; margin-bottom: 4mm; }}
-  .start code {{ font-family: Consolas, Menlo, monospace; }}
-  .treebox {{ text-align:center; }}
-  .rules {{ font-size: 9.5pt; margin-top: 4mm; color:#333; }}
-  .rules ul {{ margin: 1mm 0 0 6mm; }}
-  .rules code {{ font-family: Consolas, Menlo, monospace; }}
+  .mono {{ font-family: Consolas, 'Courier New', monospace; font-size: 9.5pt; }}
+  .gram {{ font-family: Consolas, 'Courier New', monospace; font-size: 9.5pt;
+           border: 1px solid #000; padding: 3mm; line-height: 1.5; }}
+  .note {{ font-size: 11pt; text-align: justify; }}
+  .declhead {{ border-bottom: 1.5px solid #000; padding-bottom: 2mm; margin-bottom: 3mm; }}
+  .start {{ font-size: 11pt; margin-bottom: 4mm; }}
+  .treebox {{ text-align: center; flex: 1 1 auto; display: flex; align-items: center; justify-content: center; }}
+  .treebox svg {{ flex: 0 1 auto; }}
+  .page.wide .treebox svg {{ max-height: 105mm !important; }}
+  .page.wide .rules {{ font-size: 9.5pt; }}
+  .page.wide .rules ul {{ columns: 2; }}
+  .rules {{ font-size: 10.5pt; margin-top: 3mm; }}
+  .rules ul {{ margin: 1mm 0 0 7mm; }}
+  .rules li {{ margin-bottom: 0.5mm; }}
 </style></head><body>
-{legend}
+{page1}
+{page2}
 {''.join(pages)}
 </body></html>'''
 
-out = '/tmp/claude-0/-home-user-Compiladores/aacc7efb-1e14-5b4f-9a39-f086a7696ac9/scratchpad/arvores.html'
+out = '/tmp/claude-0/-home-user-Compiladores/aacc7efb-1e14-5b4f-9a39-f086a7696ac9/scratchpad/atividade.html'
 with open(out, 'w', encoding='utf-8') as f:
     f.write(doc)
 print('ok', out)
